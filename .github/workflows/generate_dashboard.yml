@@ -1,0 +1,30 @@
+name: Generate Dashboard
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pandas numpy scikit-learn matplotlib seaborn
+
+      - name: Generate dashboard
+        run: python src/dashboard.py
+
+      - name: Commit dashboard
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add reports/dashboard.html
+          git diff --staged --quiet || git commit -m "auto: update dashboard"
+          git push
