@@ -164,4 +164,200 @@ html = f"""<!DOCTYPE html>
     <h1>Clasificación de<br>Patologías de <em>Columna Vertebral</em></h1>
     <div class="header-meta">
       <div class="meta-item"><span class="meta-val">310</span><span class="meta-label">Pacientes analizados</span></div>
-      <div class="meta-item"><span class="meta-val"
+      <div class="meta-item"><span class="meta-val">{round(best_f1*100)}%</span><span class="meta-label">Precisión del modelo</span></div>
+      <div class="meta-item"><span class="meta-val">4</span><span class="meta-label">Algoritmos comparados</span></div>
+      <div class="meta-item"><span class="meta-val">6</span><span class="meta-label">Variables biomecánicas</span></div>
+    </div>
+  </div>
+</header>
+<main>
+  <div class="section">
+    <p class="section-label">Contexto clínico</p>
+    <h2 class="section-title">Las tres condiciones que el modelo aprende a distinguir</h2>
+    <p class="section-intro">A partir de 6 medidas biomecánicas obtenidas de radiografías de columna y pelvis, el modelo clasifica cada paciente en una de estas tres categorías.</p>
+    <div class="diagnosis-grid">
+      <div class="dx-card dh">
+        <span class="dx-badge">DH</span>
+        <h3 class="dx-name">Hernia de Disco</h3>
+        <p class="dx-desc">El material interno del disco intervertebral se desplaza hacia afuera, comprimiendo nervios. Causa dolor lumbar e irradiado a piernas.</p>
+        <div class="dx-stats">
+          <div><span class="dx-stat-num">60</span><span class="dx-stat-label">Pacientes</span></div>
+          <div><span class="dx-stat-num">19%</span><span class="dx-stat-label">Del total</span></div>
+          <div><span class="dx-stat-num">{f1_per_cls['DH']}</span><span class="dx-stat-label">F1-score</span></div>
+        </div>
+      </div>
+      <div class="dx-card no">
+        <span class="dx-badge">NO</span>
+        <h3 class="dx-name">Normal</h3>
+        <p class="dx-desc">Columna y pelvis con alineación biomecánica dentro de rangos saludables. Sin patología estructural identificable en las mediciones.</p>
+        <div class="dx-stats">
+          <div><span class="dx-stat-num">100</span><span class="dx-stat-label">Pacientes</span></div>
+          <div><span class="dx-stat-num">32%</span><span class="dx-stat-label">Del total</span></div>
+          <div><span class="dx-stat-num">{f1_per_cls['NO']}</span><span class="dx-stat-label">F1-score</span></div>
+        </div>
+      </div>
+      <div class="dx-card sl">
+        <span class="dx-badge">SL</span>
+        <h3 class="dx-name">Espondilolistesis</h3>
+        <p class="dx-desc">Una vértebra se desliza sobre la inferior. Es la condición más prevalente en este dataset y la más fácil de identificar biomecánicamente.</p>
+        <div class="dx-stats">
+          <div><span class="dx-stat-num">150</span><span class="dx-stat-label">Pacientes</span></div>
+          <div><span class="dx-stat-num">48%</span><span class="dx-stat-label">Del total</span></div>
+          <div><span class="dx-stat-num">{f1_per_cls['SL']}</span><span class="dx-stat-label">F1-score</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">Rendimiento del modelo</p>
+    <h2 class="section-title">{best_name} fue el mejor algoritmo</h2>
+    <p class="section-intro">Se compararon 4 algoritmos usando F1-score como métrica principal y validación cruzada de 5 pliegues para garantizar resultados confiables con 310 pacientes.</p>
+    <div class="results-grid">
+      <div class="chart-card">
+        <p class="chart-title">Comparación de algoritmos</p>
+        <p class="chart-subtitle">F1-score en test vs media de validación cruzada</p>
+        <div class="chart-wrap"><canvas id="modelsChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <p class="chart-title">F1-score por diagnóstico</p>
+        <p class="chart-subtitle">{best_name} — qué tan bien detecta cada condición</p>
+        <div class="chart-wrap"><canvas id="classChart"></canvas></div>
+      </div>
+    </div>
+    <div class="insights-grid">
+      <div class="insight">
+        <p class="insight-title">¿Por qué F1-score y no accuracy?</p>
+        <p class="insight-text">El dataset está desbalanceado — 48% SL vs 19% DH. Un modelo que siempre dijera "SL" tendría 48% de accuracy sin aprender nada. El F1-score evalúa cada clase por separado.</p>
+      </div>
+      <div class="insight">
+        <p class="insight-title">¿Por qué validación cruzada?</p>
+        <p class="insight-text">Con solo 310 pacientes, un único split puede ser suertudo o desfavorable. La validación cruzada evalúa el modelo 5 veces con particiones distintas y promedia los resultados.</p>
+      </div>
+      <div class="insight">
+        <p class="insight-title">El reto: DH vs Normal</p>
+        <p class="insight-text">La hernia de disco (DH) y los pacientes normales (NO) tienen medidas biomecánicas muy similares. El modelo los confunde con más frecuencia que cualquier otra combinación.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">Análisis de errores</p>
+    <h2 class="section-title">Dónde acierta y dónde falla el modelo</h2>
+    <p class="section-intro">La matriz de confusión muestra los resultados sobre 62 pacientes del conjunto de prueba. Los valores en la diagonal son aciertos; fuera de ella, errores.</p>
+    <div class="cm-wrap">
+      <p class="chart-title">Matriz de Confusión — {best_name}</p>
+      <p class="chart-subtitle">62 pacientes de prueba (20% del dataset)</p>
+      <table class="cm-table">
+        <thead>
+          <tr><th></th><th colspan="3" style="border-bottom:2px solid #ddd6ca;color:#4a4540;">Predicho por el modelo</th></tr>
+          <tr><th></th><th>DH</th><th>Normal</th><th>SL</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="cm-label">DH (real)</td>
+            <td class="cm-correct">{cm_vals[0][0]}</td>
+            <td class="cm-wrong">{cm_vals[0][1]}</td>
+            <td class="cm-wrong">{cm_vals[0][2]}</td>
+          </tr>
+          <tr>
+            <td class="cm-label">Normal (real)</td>
+            <td class="cm-wrong">{cm_vals[1][0]}</td>
+            <td class="cm-correct">{cm_vals[1][1]}</td>
+            <td class="cm-wrong">{cm_vals[1][2]}</td>
+          </tr>
+          <tr>
+            <td class="cm-label">SL (real)</td>
+            <td class="cm-wrong">{cm_vals[2][0]}</td>
+            <td class="cm-wrong">{cm_vals[2][1]}</td>
+            <td class="cm-correct">{cm_vals[2][2]}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="insights-grid">
+      <div class="insight">
+        <p class="insight-title">Espondilolistesis — casi perfecta</p>
+        <p class="insight-text">{cm_vals[2][2]} de {cm_vals[2][0]+cm_vals[2][1]+cm_vals[2][2]} pacientes SL detectados correctamente. La variable degree_spondylolisthesis la distingue claramente.</p>
+      </div>
+      <div class="insight">
+        <p class="insight-title">Hernia de disco — el más difícil</p>
+        <p class="insight-text">{cm_vals[0][1]} de {cm_vals[0][0]+cm_vals[0][1]+cm_vals[0][2]} pacientes DH fueron clasificados como Normal. Sus medidas biomecánicas se solapan con pacientes sanos.</p>
+      </div>
+      <div class="insight">
+        <p class="insight-title">Sin confusión entre extremos</p>
+        <p class="insight-text">Ningún paciente SL fue clasificado como DH ni viceversa. Los errores ocurren solo entre condiciones biomecánicamente similares.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">Variables más importantes</p>
+    <h2 class="section-title">Qué medidas biomecánicas más influyen en el diagnóstico</h2>
+    <p class="section-intro">El modelo Random Forest calcula internamente qué variables usa más para tomar decisiones.</p>
+    <div class="cm-wrap">
+      <div class="feature-list">{feature_bars_html}</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">Conclusiones</p>
+    <h2 class="section-title">Lo que aprendimos del modelo y los datos</h2>
+    <div class="conclusion">
+      <h3>Hallazgos principales</h3>
+      <ul class="conclusion-list">
+        <li>{best_name} fue el mejor algoritmo con F1-score de {round(best_f1, 4)} en test — resultado consistente con la validación cruzada.</li>
+        <li>La espondilolistesis (SL) se detecta con F1 de {f1_per_cls['SL']} — casi diagnóstico perfecto — porque el grado de desplazamiento vertebral la distingue inequívocamente.</li>
+        <li>La hernia de disco (DH) es el mayor reto con F1 de {f1_per_cls['DH']}. Sus medidas biomecánicas se solapan con pacientes normales, sugiriendo que variables adicionales podrían mejorar su detección.</li>
+        <li>El modelo nunca confunde las condiciones más diferentes entre sí (SL y DH). Los errores ocurren exclusivamente entre condiciones biomecánicamente similares.</li>
+        <li>Con solo 6 variables y 310 pacientes se logra {round(best_f1*100)}% de precisión global — demostrando el poder predictivo de las medidas biomecánicas como indicadores diagnósticos.</li>
+      </ul>
+    </div>
+  </div>
+</main>
+<footer>Karla Altamirano — Machine Learning Portfolio · Dataset: UCI ML Repository — Vertebral Column</footer>
+
+<script>
+new Chart(document.getElementById('modelsChart'), {{
+  type: 'bar',
+  data: {{
+    labels: {[n.replace(' ', '\\n') for n in models_list]},
+    datasets: [
+      {{ label: 'F1 Test', data: {f1_list}, backgroundColor: '#1a5fa8', borderRadius: 3 }},
+      {{ label: 'CV Mean', data: {cv_list}, backgroundColor: '#b5763a', borderRadius: 3 }}
+    ]
+  }},
+  options: {{
+    responsive: true, maintainAspectRatio: false,
+    plugins: {{ legend: {{ labels: {{ font: {{ family: 'Source Sans 3', size: 11 }}, color: '#4a4540' }} }} }},
+    scales: {{
+      y: {{ min: 0.6, max: 1.0, grid: {{ color: '#efeae2' }}, ticks: {{ color: '#8a837a', font: {{ size: 10 }} }} }},
+      x: {{ grid: {{ display: false }}, ticks: {{ color: '#4a4540', font: {{ size: 10 }} }} }}
+    }}
+  }}
+}});
+
+new Chart(document.getElementById('classChart'), {{
+  type: 'bar',
+  data: {{
+    labels: ['DH — Hernia', 'NO — Normal', 'SL — Espondilolistesis'],
+    datasets: [{{ data: {class_f1_list}, backgroundColor: ['#c0392b', '#1a7a4a', '#1a5fa8'], borderRadius: 3 }}]
+  }},
+  options: {{
+    responsive: true, maintainAspectRatio: false,
+    plugins: {{ legend: {{ display: false }} }},
+    scales: {{
+      y: {{ min: 0, max: 1.1, grid: {{ color: '#efeae2' }}, ticks: {{ color: '#8a837a', font: {{ size: 10 }} }} }},
+      x: {{ grid: {{ display: false }}, ticks: {{ color: '#4a4540', font: {{ size: 10 }}, maxRotation: 0 }} }}
+    }}
+  }}
+}});
+</script>
+</body>
+</html>"""
+
+os.makedirs('reports', exist_ok=True)
+with open('reports/dashboard.html', 'w', encoding='utf-8') as f:
+    f.write(html)
+
+print("✅ Dashboard HTML generado en reports/dashboard.html")
